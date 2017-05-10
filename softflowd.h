@@ -192,7 +192,14 @@ struct FLOW {
 	u_int8_t tos[2];			/* Tos */
         u_int16_t vlanid;                       /* vlanid */
 	u_int8_t protocol;			/* Protocol */
+	u_int8_t biflowDirection;		/* rfc 5103; who initiated the flow */
 };
+
+/* rfc 5103 section 6.3 */
+#define DIRECTION_ARBITRARY    0
+#define DIRECTION_INIT_SOURCE       1
+#define DIRECTION_INIT_DESTINATION  2
+#define DIRECTION_PERIMETER    3
 
 /*
  * This is an entry in the tree of expiry events. The tree is used to 

@@ -331,6 +331,12 @@ transport_to_flowrec(struct FLOW *flow, const u_int8_t *pkt,
 		flow->port[ndx] = tcp->th_sport;
 		flow->port[ndx ^ 1] = tcp->th_dport;
 		flow->tcp_flags[ndx] |= tcp->th_flags;
+		if ((tcp->th_flags & 0x12) == 0x02) {
+			/* recognize initiator by SYN flag set but not ACK */
+			flow->biflowDirection = (ndx == 0)
+			                ? DIRECTION_INIT_SOURCE
+			                : DIRECTION_INIT_DESTINATION;
+		}
 		break;
 	case IPPROTO_UDP:
 		/* Check for runt packet, but don't error out on short frags */
@@ -390,7 +396,7 @@ ipv4_to_flowrec(struct FLOW *flow, const u_int8_t *pkt, size_t caplen,
 	    }
 	}
 	ndx = n > 0 ? 1 : 0;
-	
+
 	flow->af = af;
 	flow->addr[ndx].v4 = ip->ip_src;
 	flow->addr[ndx ^ 1].v4 = ip->ip_dst;
