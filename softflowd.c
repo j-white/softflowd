@@ -359,7 +359,9 @@ ipv4_to_flowrec(struct FLOW *flow, const u_int8_t *pkt, size_t caplen,
 		size_t len, int *isfrag, int af, u_int16_t vlanid)
 {
 	const struct ip *ip = (const struct ip *)pkt;
-	int ndx;
+	const struct tcphdr *tcp;
+	const struct udphdr *udp;
+	int n, ndx;
 
 	if (caplen < 20 || caplen < ip->ip_hl * 4)
 		return (-1);	/* Runt packet */
@@ -367,7 +369,27 @@ ipv4_to_flowrec(struct FLOW *flow, const u_int8_t *pkt, size_t caplen,
 		return (-1);	/* Unsupported IP version */
 	
 	/* Prepare to store flow in canonical format */
-	ndx = memcmp(&ip->ip_src, &ip->ip_dst, sizeof(ip->ip_src)) > 0 ? 1 : 0;
+	n = memcmp(&ip->ip_src, &ip->ip_dst, sizeof(ip->ip_src));
+	if (n == 0) {
+		/* differentiate by port if UDP or TCP */
+		switch (ip->ip_p) {
+		case IPPROTO_TCP:
+			if (caplen - (ip->ip_hl * 4) < sizeof(*tcp))
+				break;
+			tcp = (const struct tcphdr *)(pkt + (ip->ip_hl * 4));
+			n = memcmp(&tcp->th_sport, &tcp->th_dport,
+			           sizeof(tcp->th_sport));
+			break;
+		case IPPROTO_UDP:
+			if (caplen - (ip->ip_hl * 4) < sizeof(*udp))
+				break;
+			udp = (const struct udphdr *)(pkt + (ip->ip_hl * 4));
+			n = memcmp(&udp->uh_sport, &udp->uh_dport,
+			           sizeof(udp->uh_sport));
+			break;
+	    }
+	}
+	ndx = n > 0 ? 1 : 0;
 	
 	flow->af = af;
 	flow->addr[ndx].v4 = ip->ip_src;
