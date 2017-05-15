@@ -354,6 +354,32 @@ transport_to_flowrec(struct FLOW *flow, const u_int8_t *pkt,
 		flow->port[ndx] = 0;
 		flow->port[ndx ^ 1] = htons(icmp->icmp_type * 256 +
 		    icmp->icmp_code);
+		switch (protocol) {
+		case IPPROTO_ICMP:
+			switch (icmp->icmp_type) {
+			case ICMP_ECHO:
+			case ICMP_TIMESTAMP:
+			case ICMP_INFO_REQUEST:
+			case ICMP_ADDRESS:
+				flow->biflowDirection = (ndx == 0)
+				                ? DIRECTION_INIT_SOURCE
+				                : DIRECTION_INIT_DESTINATION;
+				break;
+			case ICMP_ECHOREPLY:
+			case ICMP_DEST_UNREACH:
+			case ICMP_TIMESTAMPREPLY:
+			case ICMP_INFO_REPLY:
+			case ICMP_ADDRESSREPLY:
+				flow->biflowDirection = (ndx == 0)
+				                ? DIRECTION_INIT_DESTINATION
+				                : DIRECTION_INIT_SOURCE;
+				break;
+			case ICMP_SOURCE_QUENCH:
+			case ICMP_REDIRECT:
+				flow->biflowDirection = DIRECTION_PERIMETER;
+				break;
+			}
+		}
 		break;
 	}
 	return (0);
