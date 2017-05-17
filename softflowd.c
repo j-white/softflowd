@@ -1598,6 +1598,7 @@ usage(void)
 "  -P udp|tcp|sctp         Specify transport layer protocol for exporting packets\n"
 "  -A sec|milli|micro|nano Specify absolute time format form exporting records\n"
 "  -s sampling_rate        Specify periodical sampling rate (denominator)\n"
+"  -b                      Enable IPFIX bidirectional flow support\n"
 "  -h                      Display this help\n"
 "\n"
 "Valid timeout names and default values:\n"
