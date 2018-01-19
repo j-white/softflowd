@@ -1,0 +1,2 @@
+#include <net/if.h>
+#define HAVE_STRUCT_IP6_EXT

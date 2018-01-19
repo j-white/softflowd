@@ -1,0 +1,17 @@
+.idea
+cmake*
+
+# autoconf
+autom4te.cache/
+configure
+
+# ./configure
+Makefile
+config.h
+config.log
+config.status
+
+# objects
+*.o
+softflowctl
+softflowd

@@ -1841,6 +1841,12 @@ main(int argc, char **argv)
 			if (optarg != NULL) {
 				if_index = (u_int16_t) atoi(dev);
 				dev = optarg;
+			} else {
+				// No if_index was specified, attempt to look one up
+				if_index = if_nametoindex(dev);
+				if (if_index == 0) {
+					fprintf(stderr, "Failed to lookup ifIndex, using 0.\n\n");
+				}
 			}
 			if (verbose_flag)
 				fprintf(stderr, "Using %s (idx: %d)\n", dev, if_index);
