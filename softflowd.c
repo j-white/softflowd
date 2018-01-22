@@ -1459,11 +1459,23 @@ unix_listener(const char *path)
 
 static void
 setup_packet_capture(struct pcap **pcap, int *linktype, 
-    char *dev, char *capfile, char *bpf_prog, int need_v6)
+    char *dev, char *capfile, char *bpf_prog, int need_v6, int direction)
 {
 	char ebuf[PCAP_ERRBUF_SIZE];
 	struct bpf_program prog_c;
 	u_int32_t bpf_mask, bpf_net;
+	pcap_direction_t pcap_direction = 0;
+
+	switch(direction) {
+	case DIRECTION_IN:
+		pcap_direction = PCAP_D_IN;
+		break;
+	case DIRECTION_OUT:
+		pcap_direction = PCAP_D_OUT;
+		break;
+	default:
+		pcap_direction = PCAP_D_INOUT;
+	}
 
 	/* Open pcap */
 	if (dev != NULL) {
@@ -1473,6 +1485,10 @@ setup_packet_capture(struct pcap **pcap, int *linktype,
 			fprintf(stderr, "pcap_open_live: %s\n", ebuf);
 			exit(1);
 		}
+        if (pcap_setdirection(*pcap, pcap_direction) == -1) {
+            pcap_perror(*pcap, "pcap_setdirection:");
+            exit(1);
+        }
 		if (pcap_lookupnet(dev, &bpf_net, &bpf_mask, ebuf) == -1)
 			bpf_net = bpf_mask = 0;
 	} else {
@@ -1599,6 +1615,7 @@ usage(void)
 "  -A sec|milli|micro|nano Specify absolute time format form exporting records\n"
 "  -s sampling_rate        Specify periodical sampling rate (denominator)\n"
 "  -b                      Enable IPFIX bidirectional flow support\n"
+"  -e                      Direction. Options are in,out or inout (default: inout) \n"
 "  -h                      Display this help\n"
 "\n"
 "Valid timeout names and default values:\n"
@@ -1792,6 +1809,7 @@ main(int argc, char **argv)
 	struct CB_CTXT cb_ctxt;
 	struct pollfd pl[2];
 	int protocol = IPPROTO_UDP;
+    int direction = DIRECTION_INOUT;
 
 	closefrom(STDERR_FILENO + 1);
 
@@ -1811,7 +1829,7 @@ main(int argc, char **argv)
 	dontfork_flag = 0;
 	always_v6 = 0;
 
-	while ((ch = getopt(argc, argv, "6hdDL:T:i:r:f:t:n:m:p:c:v:s:P:A:b")) != -1) {
+	while ((ch = getopt(argc, argv, "6hdDe:L:T:i:r:f:t:n:m:p:c:v:s:P:A:b")) != -1) {
 		switch (ch) {
 		case '6':
 			always_v6 = 1;
@@ -1826,6 +1844,19 @@ main(int argc, char **argv)
 		case 'd':
 			dontfork_flag = 1;
 			break;
+        case 'e':
+            if (strcasecmp(optarg, "in") == 0)
+                flowtrack.param.capture_direction = DIRECTION_IN;
+            else if (strcasecmp(optarg, "out") == 0)
+                flowtrack.param.capture_direction = DIRECTION_OUT;
+            else if (strcasecmp(optarg, "inout") == 0)
+                flowtrack.param.capture_direction = DIRECTION_INOUT;
+            else {
+                fprintf(stderr, "Unknown direction\n");
+                usage();
+                exit(1);
+            }
+            break;
 		case 'i':
 			if (capfile != NULL || dev != NULL) {
 				fprintf(stderr, "Packet source already "
@@ -1983,9 +2014,9 @@ main(int argc, char **argv)
 	bpf_prog = argv_join(argc - optind, argv + optind);
 
 	/* Will exit on failure */
-	setup_packet_capture(&pcap, &linktype, dev, capfile, bpf_prog,
-	    target.dialect->v6_capable || always_v6);
-	
+	setup_packet_capture(&pcap, &linktype, dev, flowtrack.param.capture_direction, bpf_prog,
+	    target.dialect->v6_capable || always_v6, direction);
+
 	/* Netflow send socket */
 	if (dest.ss_family != 0) {
 		if ((err = getnameinfo((struct sockaddr *)&dest,

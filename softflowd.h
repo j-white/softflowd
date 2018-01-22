@@ -75,6 +75,11 @@ struct STATISTIC {
 #define TRACK_IP_ONLY		4	/* src/dst tuple */
 #define TRACK_FULL_VLAN		5	/* src/dst/addr/port/proto/tos/vlanid 7-tuple */
 
+/* Capture direction */
+#define DIRECTION_IN		1
+#define DIRECTION_OUT	2
+#define DIRECTION_INOUT		3
+
 /*
  * This structure contains optional information carried by Option Data
  * Record.
@@ -141,6 +146,7 @@ struct FLOWTRACKPARAMETERS {
 	struct OPTION option;
 	char time_format;
 	u_int8_t bidirection;
+	u_int8_t capture_direction;
 };
 /*
  * This structure is the root of the flow tracking system.

@@ -77,6 +77,8 @@ send_netflow_v5(struct FLOW **flows, int num_flows, int nfsock,
 	gettimeofday(&now, NULL);
 	uptime_ms = timeval_sub_ms(&now, system_boot_time);
 
+	u_int16_t padding_with_ingress = param->capture_direction == DIRECTION_OUT ? 0x08 << 8 : 0;
+
 	hdr = (struct NF5_HEADER *)packet;
 	for (num_packets = offset = j = i = 0; i < num_flows; i++) {
 		if (j >= NF5_MAXFLOWS - 1) {
@@ -130,6 +132,7 @@ send_netflow_v5(struct FLOW **flows, int num_flows, int nfsock,
 			flw->tcp_flags = flows[i]->tcp_flags[0];
 			flw->protocol = flows[i]->protocol;
 			flw->tos = flows[i]->tos[0];
+			flw->pad2 = padding_with_ingress;
 			offset += sizeof(*flw);
 			j++;
 			hdr->flows++;
@@ -154,6 +157,7 @@ send_netflow_v5(struct FLOW **flows, int num_flows, int nfsock,
 			flw->tcp_flags = flows[i]->tcp_flags[1];
 			flw->protocol = flows[i]->protocol;
 			flw->tos = flows[i]->tos[1];
+			flw->pad2 = padding_with_ingress;
 			offset += sizeof(*flw);
 			j++;
 			hdr->flows++;
